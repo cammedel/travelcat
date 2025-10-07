@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api';
@@ -48,7 +48,7 @@ function Reportes() {
     return (
         <div className="container mt-4">
             <div className="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
-                <h1 className="mb-0">Reportes de gesti�n</h1>
+                <h1 className="mb-0">Reportes de gestion</h1>
                 <div className="d-flex gap-2">
                     <button type="button" className="btn btn-outline-primary" onClick={handlePrint} disabled={loading}>
                         Imprimir reporte
@@ -69,12 +69,12 @@ function Reportes() {
                     <div className="col-lg-6">
                         <div className="card shadow-sm">
                             <div className="card-header bg-white">
-                                <h5 className="mb-0">Costo acumulado por camión</h5>
+                                <h5 className="mb-0">Costo acumulado por camion</h5>
                                 <small className="text-muted">Incluye repuestos utilizados y gastos registrados</small>
                             </div>
                             <div className="card-body p-0">
                                 {costos.length === 0 ? (
-                                    <div className="p-4 text-center text-muted">Aún no hay información disponible.</div>
+                                    <div className="p-4 text-center text-muted">Aun no hay informacion disponible.</div>
                                 ) : (
                                     <div className="table-responsive">
                                         <table className="table table-hover mb-0">
@@ -102,7 +102,7 @@ function Reportes() {
                     <div className="col-lg-6">
                         <div className="card shadow-sm mb-4">
                             <div className="card-header bg-white">
-                                <h5 className="mb-0">Documentación detallada</h5>
+                                <h5 className="mb-0">Documentacion detallada</h5>
                                 <small className="text-muted">Ordenada por proximidad de vencimiento</small>
                             </div>
                             <div className="card-body p-0">
@@ -116,7 +116,7 @@ function Reportes() {
                                                     <th>Responsable</th>
                                                     <th>Archivo</th>
                                                     <th>Vence</th>
-                                                    <th>Días</th>
+                                                    <th>Dias</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -124,7 +124,7 @@ function Reportes() {
                                                     <tr key={doc.id}>
                                                         <td>{doc.patente}</td>
                                                         <td>{doc.tipo}</td>
-                                                        <td>{doc.responsable || '—'}</td>
+                                                        <td>{doc.responsable || 'Sin dato'}</td>
                                                         <td>
                                                             {doc.fileUrl ? (
                                                                 <a href={doc.fileUrl} className="btn btn-sm btn-outline-secondary" target="_blank" rel="noreferrer">
@@ -134,15 +134,15 @@ function Reportes() {
                                                                 <span className="text-muted small">No disponible</span>
                                                             )}
                                                         </td>
-                                                        <td>{doc.vence ? new Date(doc.vence).toLocaleDateString() : '—'}</td>
-                                                        <td>{doc.diasParaVencer ?? '—'}</td>
+                                                        <td>{doc.vence ? new Date(doc.vence).toLocaleDateString() : 'Sin fecha'}</td>
+                                                        <td>{doc.diasParaVencer ?? 'Sin dato'}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                     </div>
                                 ) : (
-                                    <div className="p-4 text-center text-muted">Sin documentación registrada.</div>
+                                    <div className="p-4 text-center text-muted">Sin Documentacion registrada.</div>
                                 )}
                             </div>
                         </div>
@@ -150,7 +150,7 @@ function Reportes() {
                         <div className="card shadow-sm">
                             <div className="card-header bg-white">
                                 <h5 className="mb-0">Gastos por periodo</h5>
-                                <small className="text-muted">Detalle de los últimos movimientos</small>
+                                <small className="text-muted">Detalle de los ultimos movimientos</small>
                             </div>
                             <div className="card-body p-0">
                                 {dashboard?.gastos?.mensual?.length ? (
@@ -180,3 +180,6 @@ function Reportes() {
 }
 
 export default Reportes;
+
+
+

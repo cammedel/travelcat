@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api';
@@ -59,19 +60,47 @@ function Proveedores() {
     const [editingId, setEditingId] = useState(null);
     const [saving, setSaving] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
+    const [importPreview, setImportPreview] = useState([]);
+    const [importSelection, setImportSelection] = useState(new Set());
+    const [importMessage, setImportMessage] = useState(null);
+    const [importError, setImportError] = useState(null);
+    const [importFilter, setImportFilter] = useState('');
+    const [importing, setImporting] = useState(false);
+    const filteredImportPreview = useMemo(() => {
+        if (!importFilter.trim()) return importPreview;
+        const term = importFilter.trim().toLowerCase();
+        return importPreview.filter((item) => {
+            return [item.razonSocial, item.empresa, item.rut].some((field) =>
+                field?.toLowerCase().includes(term)
+            );
+        });
+    }, [importPreview, importFilter]);
+
+    const selectedImportCount = useMemo(() =>
+        importPreview.filter((item) => importSelection.has(item.tempId) && !item.exists).length,
+        [importPreview, importSelection]
+    );
     const ayuda = useMemo(
         () => [
-            'El RUT se valida automáticamente para evitar registros inválidos.',
+            'El RUT se valida automaticamente para evitar registros inválidos.',
             'Utiliza esta lista para alimentar la selección de proveedores en las órdenes de trabajo.',
             'Puedes actualizar o eliminar un proveedor sin afectar otros registros locales.'
         ],
         []
     );
 
-    const headers = useMemo(() => ({
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token
-    }), [token]);
+    const headers = useMemo(
+        () => ({
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token
+        }),
+        [token]
+    );
+
+    const existingRuts = useMemo(
+        () => new Set(proveedores.map((prov) => sanitizeRut(prov.rut))),
+        [proveedores]
+    );
 
     const fetchProveedores = useCallback(async () => {
         if (!token) return;
@@ -101,6 +130,172 @@ function Proveedores() {
     useEffect(() => {
         fetchProveedores();
     }, [fetchProveedores]);
+
+    const handleImportFileChange = async (event) => {
+        const file = event.target.files?.[0] || null;
+
+        setImportError(null);
+        setImportMessage(null);
+        setImportPreview([]);
+        setImportSelection(new Set());
+
+        if (!file) return;
+
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+            const normalizeKey = (value) =>
+                value
+                    .toString()
+                    .trim()
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]/g, '');
+
+            const normalizeText = (value) => (value ? String(value).trim() : '');
+
+            const parsed = rows
+                .map((rawRow, index) => {
+                    const normalizedRow = {};
+                    Object.keys(rawRow).forEach((key) => {
+                        normalizedRow[normalizeKey(key)] = rawRow[key];
+                    });
+
+                    const getValue = (keys) => {
+                        for (const key of keys) {
+                            if (normalizedRow[key] !== undefined && normalizedRow[key] !== null) {
+                                return normalizeText(normalizedRow[key]);
+                            }
+                        }
+                        return '';
+                    };
+
+                    const razonSocial = getValue(['razonsocial', 'razon', 'razonsocialrazon', 'razonsocialempresa']);
+                    const empresa = getValue(['empresa', 'nombre', 'fantasia', 'nombrefantasia']) || razonSocial;
+                    const rutRaw = getValue(['rut']);
+                    const contacto = getValue(['contacto', 'contact', 'responsable']);
+                    const telefono = getValue(['telefono', 'fono', 'celular']);
+                    const email = getValue(['email', 'correo']);
+                    const rubro = getValue(['rubro', 'giro', 'actividad']);
+
+                    const rutLimpio = sanitizeRut(rutRaw);
+
+                    if (!razonSocial || !rutLimpio || !isValidRut(rutLimpio)) {
+                        return null;
+                    }
+
+                    const exists = existingRuts.has(rutLimpio);
+
+                    return {
+                        tempId: index + 1,
+                        razonSocial,
+                        empresa,
+                        rut: formatRut(rutLimpio),
+                        rutLimpio,
+                        contacto,
+                        telefono,
+                        email,
+                        rubro,
+                        exists
+                    };
+                })
+                .filter(Boolean);
+
+            if (parsed.length === 0) {
+                setImportError('El archivo no contiene registros validos.');
+                return;
+            }
+
+            const initialSelection = parsed.filter((item) => !item.exists).map((item) => item.tempId);
+
+            setImportPreview(parsed);
+            setImportSelection(new Set(initialSelection));
+            setImportMessage(`Se detectaron ${parsed.length} registros. Listos para importar: ${initialSelection.length}.`);
+        } catch (fileError) {
+            console.error(fileError);
+            setImportError('No se pudo procesar el archivo. Verifica que sea un XLSX valido.');
+        } finally {
+            if (event.target) {
+                event.target.value = '';
+            }
+        }
+    };
+
+    const toggleImportSelection = (tempId, locked) => {
+        if (locked) return;
+        setImportSelection((prev) => {
+            const next = new Set(prev);
+            if (next.has(tempId)) next.delete(tempId);
+            else next.add(tempId);
+            return next;
+        });
+    };
+
+    const handleImportFilterChange = (event) => {
+        setImportFilter(event.target.value);
+    };
+
+    const handleImportProviders = async () => {
+        const selected = importPreview.filter((item) => importSelection.has(item.tempId) && !item.exists);
+
+        if (selected.length === 0) {
+            setImportError('Selecciona al menos un proveedor nuevo para importar.');
+            return;
+        }
+
+        setImporting(true);
+        setImportError(null);
+        setImportMessage(null);
+
+        const rutsRegistrados = new Set(existingRuts);
+        let creados = 0;
+
+        try {
+            for (const provider of selected) {
+                if (rutsRegistrados.has(provider.rutLimpio)) {
+                    continue;
+                }
+
+                const payload = {
+                    razonSocial: provider.razonSocial,
+                    empresa: provider.empresa || provider.razonSocial,
+                    rut: provider.rut,
+                    contacto: provider.contacto,
+                    telefono: provider.telefono,
+                    email: provider.email,
+                    rubro: provider.rubro
+                };
+
+                const response = await fetch(API_PROVIDERS, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const body = await response.json().catch(() => ({}));
+                    throw new Error(body.error || `No se pudo importar el proveedor ${provider.razonSocial}.`);
+                }
+
+                rutsRegistrados.add(provider.rutLimpio);
+                creados += 1;
+            }
+
+            setImportMessage(`Importacion completada. Registros creados: ${creados}.`);
+            setImportPreview([]);
+            setImportSelection(new Set());
+            await fetchProveedores();
+        } catch (importErr) {
+            setImportError(importErr.message);
+        } finally {
+            setImporting(false);
+        }
+    };
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -233,7 +428,7 @@ function Proveedores() {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 className="mb-0">Proveedores</h1>
-                    <p className="text-muted mb-0">Registra y gestiona tus contactos estratégicos</p>
+                    <p className="text-muted mb-0">Registra y gestiona tus contactos estrategicos</p>
                 </div>
                 <button className="btn btn-outline-secondary" type="button" onClick={fetchProveedores} disabled={loading}>
                     {loading ? 'Actualizando...' : 'Refrescar'}
@@ -241,7 +436,7 @@ function Proveedores() {
             </div>
 
             <div className="help-callout mb-4">
-                <strong>Cómo gestionar proveedores</strong>
+                <strong>Como gestionar proveedores</strong>
                 <ul className="mb-0">
                     {ayuda.map((tip) => (
                         <li key={tip}>{tip}</li>
@@ -254,6 +449,106 @@ function Proveedores() {
                     {error}
                 </div>
             )}
+
+            <div className="card shadow-sm mb-4">
+                <div className="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                    <div>
+                        <h5 className="mb-0">Importar proveedores (Excel)</h5>
+                        <small className="text-muted">Formato sugerido: columnas Razon social, RUT, Contacto, Telefono, Correo y Rubro.</small>
+                    </div>
+                    <div className="text-muted small">Archivos admitidos: .xlsx</div>
+                </div>
+                <div className="card-body">
+                    <div className="row g-3 align-items-end">
+                        <div className="col-sm-6 col-md-4 col-lg-3">
+                            <label className="form-label small">Archivo Excel</label>
+                            <input
+                                type="file"
+                                className="form-control form-control-sm"
+                                accept=".xlsx,.xls"
+                                onChange={handleImportFileChange}
+                            />
+                        </div>
+                        {importPreview.length > 0 && (
+                            <div className="col-sm-6 col-md-4 col-lg-3">
+                                <label className="form-label small">Buscar</label>
+                                <input
+                                    type="text"
+                                    className="form-control form-control-sm"
+                                    value={importFilter}
+                                    onChange={handleImportFilterChange}
+                                    placeholder="Razon social o RUT"
+                                />
+                            </div>
+                        )}
+                        {importPreview.length > 0 && (
+                            <div className="col-md-4 col-lg-3 text-md-end">
+                                <button
+                                    type="button"
+                                    className="btn btn-primary btn-sm"
+                                    onClick={handleImportProviders}
+                                    disabled={importing || selectedImportCount === 0}
+                                >
+                                    {importing ? 'Importando...' : `Importar (${selectedImportCount})`}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    {importError && (
+                        <div className="alert alert-danger mt-3" role="alert">
+                            {importError}
+                        </div>
+                    )}
+                    {importMessage && (
+                        <div className="alert alert-success mt-3" role="alert">
+                            {importMessage}
+                        </div>
+                    )}
+                </div>
+                {importPreview.length > 0 && (
+                    <div className="table-responsive border-top">
+                        <table className="table table-sm align-middle mb-0">
+                            <thead className="table-light">
+                                <tr>
+                                    <th style={{ width: '40px' }}></th>
+                                    <th>Razon social</th>
+                                    <th>RUT</th>
+                                    <th>Contacto</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredImportPreview.map((item) => (
+                                    <tr key={item.tempId}>
+                                        <td>
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                checked={importSelection.has(item.tempId)}
+                                                onChange={() => toggleImportSelection(item.tempId, item.exists || importing)}
+                                                disabled={item.exists || importing}
+                                            />
+                                        </td>
+                                        <td>
+                                            <div className="fw-semibold">{item.razonSocial}</div>
+                                            <div className="text-muted small">{item.empresa}</div>
+                                        </td>
+                                        <td>{item.rut}</td>
+                                        <td>{item.contacto || 'Sin contacto'}</td>
+                                        <td>
+                                            {item.exists ? (
+                                                <span className="badge text-bg-secondary">Ya registrado</span>
+                                            ) : (
+                                                <span className="badge text-bg-success">Nuevo</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
 
             <div className="row g-4">
                 <div className="col-lg-7">
@@ -274,7 +569,7 @@ function Proveedores() {
                                                 <th>Razón social</th>
                                                 <th>RUT</th>
                                                 <th>Contacto</th>
-                                                <th>Teléfono</th>
+                                                <th>Telefono</th>
                                                 <th>Correo</th>
                                                 <th></th>
                                             </tr>
@@ -291,8 +586,8 @@ function Proveedores() {
                                                         <div>{provider.contacto}</div>
                                                         {provider.rubro && <div className="text-muted small">{provider.rubro}</div>}
                                                     </td>
-                                                    <td>{provider.telefono || '—'}</td>
-                                                    <td>{provider.email || '—'}</td>
+                                                    <td>{provider.telefono || 'â€”'}</td>
+                                                    <td>{provider.email || 'â€”'}</td>
                                                     <td className="text-end">
                                                         <div className="btn-group btn-group-sm" role="group">
                                                             <button className="btn btn-outline-primary" onClick={() => handleEdit(provider)}>
@@ -378,7 +673,7 @@ function Proveedores() {
 
                                 <div className="row">
                                     <div className="col-md-6 mb-3">
-                                        <label className="form-label">Teléfono</label>
+                                        <label className="form-label">Telefono</label>
                                         <input
                                             name="telefono"
                                             value={formData.telefono}
@@ -408,7 +703,7 @@ function Proveedores() {
                                         value={formData.rubro}
                                         onChange={handleChange}
                                         className="form-control"
-                                        placeholder="Ej. Mantención hidráulica"
+                                        placeholder="Ej. Mantención hidraulica"
                                     />
                                 </div>
 

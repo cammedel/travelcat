@@ -214,3 +214,45 @@ VALUES
 (1, 'Filtro de aceite', 2, 45000),
 (1, 'Filtro de combustible', 1, 38000),
 (2, 'Pastillas freno traseras', 4, 29000);
+
+-- ------------------------------------------------------------
+-- Presupuestos asociados a cada orden de trabajo
+-- ------------------------------------------------------------
+CREATE TABLE presupuestos_ot (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    orden_id        INT UNSIGNED NOT NULL,
+    monto_solicitado DECIMAL(14,2) NOT NULL,
+    estado          ENUM('Pendiente','Aprobado','Parcial','Rechazado') DEFAULT 'Pendiente',
+    observacion     TEXT,
+    creado_en       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_presupuesto_ot FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+INSERT INTO presupuestos_ot (orden_id, monto_solicitado, estado, observacion, creado_en, actualizado_en)
+VALUES
+(1, 128000, 'Pendiente', '', '2024-06-15 09:00:00', '2024-06-15 09:00:00'),
+(2, 29000, 'Aprobado', 'Continuar con la revisión según cronograma.', '2024-06-20 10:30:00', '2024-06-22 14:45:00');
+
+-- ------------------------------------------------------------
+-- Notificaciones del sistema (alertas de presupuesto, etc.)
+-- ------------------------------------------------------------
+CREATE TABLE notificaciones (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    mensaje     VARCHAR(255) NOT NULL,
+    tipo        ENUM('info','success','warning','danger') DEFAULT 'info',
+    orden_id    INT UNSIGNED,
+    presupuesto_id INT UNSIGNED,
+    leida       TINYINT(1) DEFAULT 0,
+    creado_en   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    leida_en    TIMESTAMP NULL,
+    CONSTRAINT fk_notif_ot FOREIGN KEY (orden_id) REFERENCES ordenes_trabajo (id)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_notif_presupuesto FOREIGN KEY (presupuesto_id) REFERENCES presupuestos_ot (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+INSERT INTO notificaciones (mensaje, tipo, orden_id, presupuesto_id, leida, creado_en)
+VALUES
+('El presupuesto de la OT "Revisión frenos" fue aprobado.', 'success', 2, 2, 0, '2024-06-22 15:00:00');

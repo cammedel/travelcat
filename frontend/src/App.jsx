@@ -1,13 +1,13 @@
-// frontend/src/App.jsx (CORREGIDO)
+﻿// frontend/src/App.jsx (CORREGIDO)
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
-// Importa los componentes de página. Asegúrate que estos archivos existan en src/pages/
+// Importa los componentes de pÃ¡gina. AsegÃºrate que estos archivos existan en src/pages/
 import Dashboard from './pages/Dashboard';
-import NuevaOTPage from './pages/NuevaOTpage'; // ¡CORRECCIÓN! Importa la página contenedora.
-import Camiones from './pages/Camiones';      // <-- Página de Camiones
+import NuevaOTPage from './pages/NuevaOTpage'; // Â¡CORRECCIÃ“N! Importa la pÃ¡gina contenedora.
+import Camiones from './pages/Camiones';      // <-- PÃ¡gina de Camiones
 import Mantencion from './pages/Mantencion'; 
 import Proveedores from './pages/Proveedores'; 
 import Reportes from './pages/Reportes';
@@ -15,10 +15,11 @@ import Gastos from './pages/Gastos';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import AccessibilityMenu from './components/AccessibilityMenu';
+import NotificationsBell from './components/NotificationsBell';
 
 
 
-// Componente simple para la barra de navegación (AÑADIMOS ENLACE A CAMIONES)
+// Componente simple para la barra de navegaciÃ³n (AÃ‘ADIMOS ENLACE A CAMIONES)
 const NavBar = () => {
     const { isAuthenticated, user, logout } = useAuth();
 
@@ -39,7 +40,7 @@ const NavBar = () => {
                             <Link className="nav-link" to="/">Dashboard</Link>
                         </li>
                         <li className="nav-item">
-                            <Link className="nav-link" to="/nueva">Órden de Trabajo</Link>
+                            <Link className="nav-link" to="/nueva">Ordenes de Trabajo</Link>
                         </li>
                         <li className="nav-item">
                             <Link className="nav-link" to="/camiones">Camiones</Link>
@@ -58,6 +59,7 @@ const NavBar = () => {
                         </li>
                     </ul>
                     <div className="d-flex align-items-center gap-3 text-white">
+                        <NotificationsBell />
                         <span className="small">{user?.name || user?.email}</span>
                         <button className="btn btn-outline-light btn-sm" onClick={logout}>
                             Cerrar sesión

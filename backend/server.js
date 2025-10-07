@@ -12,6 +12,8 @@ const reportRoutes = require('./routes/reportRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const referenceRoutes = require('./routes/referenceRoutes');
 const maintenanceRoutes = require('./routes/maintenanceRoutes');
+const budgetRoutes = require('./routes/budgetRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
@@ -33,6 +35,8 @@ app.use('/api/reports', authMiddleware, reportRoutes);
 app.use('/api/expenses', authMiddleware, expenseRoutes);
 app.use('/api/reference', authMiddleware, referenceRoutes);
 app.use('/api/maintenance-programs', authMiddleware, maintenanceRoutes);
+app.use('/api/budgets', authMiddleware, budgetRoutes);
+app.use('/api/notifications', authMiddleware, notificationRoutes);
 
 app.listen(PORT, () => {
     console.log(`Servidor en puerto ${PORT}`);

@@ -2,7 +2,8 @@ const {
     listExpenses,
     createExpense,
     getBudgetInfo,
-    updateBudget
+    updateBudget,
+    getProviderById
 } = require('../data/memoryStore');
 
 exports.obtenerGastos = (req, res) => {
@@ -28,10 +29,28 @@ exports.registrarGasto = (req, res) => {
 
     const file = req.file;
 
+    let proveedorId = req.body.proveedorId !== undefined ? Number(req.body.proveedorId) : null;
+    if (!Number.isFinite(proveedorId) || proveedorId <= 0) {
+        proveedorId = null;
+    }
+
+    let proveedorNombre = null;
+    if (proveedorId) {
+        const proveedor = getProviderById(proveedorId);
+        if (!proveedor) {
+            proveedorId = null;
+        } else {
+            proveedorNombre = proveedor.empresa || proveedor.razonSocial || null;
+        }
+    }
+
     const nuevoGasto = createExpense({
-        ...req.body,
+        patente: req.body.patente,
+        concepto: req.body.concepto,
         costo: valor,
         fecha: req.body.fecha,
+        proveedorId,
+        proveedorNombre,
         boletaPath: file ? `/uploads/boletas/${file.filename}` : null,
         boletaNombre: file ? file.originalname : null,
         boletaMime: file ? file.mimetype : null

@@ -126,19 +126,6 @@ function NuevaOTForm({
                             <option value="Alta">Alta</option>
                         </select>
                     </div>
-                    <div className="col-md-2 mb-3">
-                        <label className="form-label">Estado</label>
-                        <select
-                            name="estado"
-                            value={formData.estado}
-                            onChange={(event) => onFieldChange(event.target.name, event.target.value)}
-                            className="form-select"
-                        >
-                            <option value="Pendiente">Pendiente</option>
-                            <option value="En progreso">En progreso</option>
-                            <option value="Finalizada">Finalizada</option>
-                        </select>
-                    </div>
                 </div>
 
                 <div className="mb-3">
@@ -270,7 +257,6 @@ NuevaOTForm.defaultProps = {
         mecanico: '',
         proveedorId: '',
         prioridad: 'Media',
-        estado: 'Pendiente',
         descripcion: '',
         fechaSolicitud: '',
         conductor: '',

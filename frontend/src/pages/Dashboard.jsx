@@ -21,6 +21,15 @@ const API_REPORT = API_BASE + '/reports/dashboard';
 const formatCurrency = (value) =>
     new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(value || 0);
 
+const formatPeriodLabel = (periodo) => {
+    if (!periodo) return '';
+    const [year, month] = periodo.split('-');
+    if (!year || !month) return periodo;
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    if (Number.isNaN(date.getTime())) return periodo;
+    return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+};
+
 const buildChartData = (entries = {}) =>
     Object.entries(entries).map(([name, value]) => ({ name, value }));
 
@@ -106,10 +115,21 @@ function Dashboard() {
             });
     }, [token]);
 
-    const maxVenta = useMemo(() => {
-        if (!report?.ventas?.length) return 1;
-        return Math.max(...report.ventas.map((item) => item.monto)) || 1;
-    }, [report]);
+    const monthlyExpenses = report?.gastos?.mensual ?? [];
+
+    const expenseChartData = useMemo(
+        () =>
+            monthlyExpenses.map((item) => ({
+                name: formatPeriodLabel(item.periodo),
+                monto: item.total
+            })),
+        [monthlyExpenses]
+    );
+
+    const maxGasto = useMemo(() => {
+        if (expenseChartData.length === 0) return 1;
+        return Math.max(...expenseChartData.map((item) => item.monto)) || 1;
+    }, [expenseChartData]);
 
     const estadoData = useMemo(() => buildChartData(report?.ot?.porEstado), [report]);
     const prioridadData = useMemo(() => buildChartData(report?.ot?.porPrioridad), [report]);
@@ -121,305 +141,273 @@ function Dashboard() {
     const presupuestoRestante = presupuesto?.disponible || 0;
     const presupuestoPorcentaje = Math.min((presupuestoGastado / presupuestoTotal) * 100, 100);
 
+    const pendingOrders = useMemo(
+        () => orders.filter((order) => order.estado === 'Pendiente').length,
+        [orders]
+    );
+
+    const criticalMaintenances = useMemo(
+        () => mantenciones.filter((item) => item.estado === 'Vencido').length,
+        [mantenciones]
+    );
+
+    const todaysDate = new Date().toLocaleDateString();
+
     return (
-        <div className="container mt-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 className="mb-0">Dashboard de mantenimiento</h1>
-                    <p className="text-muted mb-0">Indicadores ejecutivos para la operación diaria</p>
+        <div className="container page-wrapper">
+            <section className="page-hero">
+                <h1>Panel de mantenimiento</h1>
+                <p>
+                    Monitorea tus indicadores de flota, presupuesto y mantención en una vista moderna.
+                    Las acciones rápidas te permiten reaccionar a tiempo ante alertas y órdenes pendientes.
+                </p>
+                <div className="d-flex flex-wrap gap-2">
+                    <Link to="/nueva" className="btn btn-primary">
+                        Crear nueva OT
+                    </Link>
+                    <Link to="/gastos" className="btn btn-outline-primary">
+                        Revisar gastos
+                    </Link>
                 </div>
-                <Link to="/nueva" className="btn btn-primary">➕ Crear Nueva OT</Link>
-            </div>
+            </section>
 
             {reportError && (
-                <div className="alert alert-warning" role="alert">
+                <div className="alert alert-warning mb-3" role="alert">
                     {reportError}
                 </div>
             )}
 
-            <div className="help-callout mb-4">
-                <strong>¿Qué puedo hacer aquí?</strong>
-                <ul className="mb-0">
-                    <li>Revisa la curva mensual de ventas y los estados de tus órdenes.</li>
-                    <li>Identifica documentación y programas preventivos próximos a vencer.</li>
-                    <li>Controla los gastos con el presupuesto disponible.</li>
-                </ul>
+            {ordersError && (
+                <div className="alert alert-warning mb-3" role="alert">
+                    {ordersError}
+                </div>
+            )}
+
+            <div className="row g-3 mb-4">
+                <div className="col-md-3">
+                    <div className="section-card h-100">
+                        <span className="text-muted small">Órdenes activas</span>
+                        <h3 className="mt-2 mb-0">{pendingOrders}</h3>
+                        <small className="text-muted">Pendientes de atención</small>
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="section-card h-100">
+                        <span className="text-muted small">Presupuesto disponible</span>
+                        <h3 className="mt-2 mb-0">{formatCurrency(presupuestoRestante)}</h3>
+                        <small className="text-muted">
+                            {presupuesto ? `${presupuestoPorcentaje.toFixed(0)}% utilizado` : 'Sin datos'}
+                        </small>
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="section-card h-100">
+                        <span className="text-muted small">Alertas de mantenimiento</span>
+                        <h3 className="mt-2 mb-0">{criticalMaintenances}</h3>
+                        <small className="text-muted">Tareas vencidas</small>
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="section-card h-100">
+                        <span className="text-muted small">Actualizado</span>
+                        <h3 className="mt-2 mb-0">{todaysDate}</h3>
+                        <small className="text-muted">Datos sincronizados</small>
+                    </div>
+                </div>
             </div>
 
             <div className="row g-4 mb-4">
-                <div className="col-lg-7">
-                    <div className="card shadow-sm h-100">
-                        <div className="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0">Ventas del año</h5>
-                            {!reportLoading && (
-                                <span className="text-muted small">Máximo: {formatCurrency(maxVenta)}</span>
-                            )}
+                <div className="col-xl-7">
+                    <div className="section-card h-100">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h5 className="mb-0">Gastos por mes</h5>
+                                <small className="text-muted">Maximo: {formatCurrency(maxGasto)}</small>
+                            </div>
                         </div>
-                        <div className="card-body" style={{ height: 260 }}>
+                        <div style={{ height: 260 }}>
                             {reportLoading ? (
-                                <div className="text-center text-muted">Cargando ventas...</div>
+                                <div className="text-center text-muted">Cargando gastos...</div>
                             ) : (
                                 <ResponsiveContainer>
-                                    <AreaChart data={report?.ventas || []}>
+                                    <AreaChart data={expenseChartData}>
                                         <defs>
-                                            <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
+                                            <linearGradient id="colorGastos" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#0d6efd" stopOpacity={0.7} />
                                                 <stop offset="95%" stopColor="#0d6efd" stopOpacity={0.1} />
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#dee2e6" />
-                                        <XAxis dataKey="mes" stroke="#6c757d" />
+                                        <XAxis dataKey="name" stroke="#6c757d" />
                                         <YAxis stroke="#6c757d" tickFormatter={(value) => (value / 1000000).toFixed(1) + 'M'} />
                                         <Tooltip formatter={(value) => formatCurrency(value)} />
-                                        <Area type="monotone" dataKey="monto" stroke="#0d6efd" fill="url(#colorVentas)" />
+                                        <Area type="monotone" dataKey="monto" stroke="#0d6efd" fill="url(#colorGastos)" />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             )}
                         </div>
                     </div>
                 </div>
-
-                <div className="col-lg-5">
-                    <div className="card shadow-sm mb-3">
-                        <div className="card-body">
-                            <h6 className="text-muted">Órdenes por estado</h6>
-                            {reportLoading ? (
-                                <div className="text-muted">Cargando...</div>
-                            ) : estadoData.length === 0 ? (
-                                <div className="text-muted">Sin registros.</div>
-                            ) : (
-                                <div style={{ height: 200 }}>
-                                    <ResponsiveContainer>
-                                        <BarChart data={estadoData}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="name" />
-                                            <YAxis allowDecimals={false} />
-                                            <Tooltip />
-                                            <Legend />
-                                            <Bar dataKey="value" name="Cantidad" fill="#20c997" radius={[4, 4, 0, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="card shadow-sm">
-                        <div className="card-body">
-                            <h6 className="text-muted">Órdenes por prioridad</h6>
-                            {reportLoading ? (
-                                <div className="text-muted">Cargando...</div>
-                            ) : prioridadData.length === 0 ? (
-                                <div className="text-muted">Sin registros.</div>
-                            ) : (
-                                <div style={{ height: 160 }}>
-                                    <ResponsiveContainer>
-                                        <BarChart data={prioridadData}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="name" />
-                                            <YAxis allowDecimals={false} />
-                                            <Tooltip />
-                                            <Bar dataKey="value" name="Cantidad" fill="#ffc107" radius={[4, 4, 0, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            )}
-                        </div>
+                <div className="col-xl-5">
+                    <div className="section-card h-100">
+                        <h5 className="mb-3">Órdenes por estado</h5>
+                        {reportLoading ? (
+                            <div className="text-muted">Cargando...</div>
+                        ) : estadoData.length === 0 ? (
+                            <div className="text-muted">Sin registros.</div>
+                        ) : (
+                            <div style={{ height: 200 }}>
+                                <ResponsiveContainer>
+                                    <BarChart data={estadoData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis allowDecimals={false} />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar dataKey="value" name="Cantidad" fill="#31b0ff" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
             <div className="row g-4 mb-4">
-                <div className="col-lg-6">
-                    <div className="card shadow-sm h-100">
-                        <div className="card-header bg-white d-flex justify-content-between align-items-center">
+                <div className="col-xl-6">
+                    <div className="section-card h-100">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
                             <h5 className="mb-0">Documentación por vencer</h5>
-                            <Link to="/reportes" className="btn btn-outline-secondary btn-sm">Ver reportes</Link>
+                            <Link to="/reportes" className="btn btn-outline-primary btn-sm">
+                                Ver reportes
+                            </Link>
                         </div>
-                        <div className="card-body p-0">
-                            {reportLoading ? (
-                                <div className="p-4 text-center text-muted">Cargando documentación...</div>
-                            ) : report?.documentacion?.length ? (
-                                <div className="table-responsive">
-                                    <table className="table table-sm table-hover mb-0">
-                                        <thead className="table-light">
-                                            <tr>
-                                                <th>Patente</th>
-                                                <th>Documento</th>
-                                                <th>Vence</th>
-                                                <th>Estado</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {report.documentacion.slice(0, 6).map((doc) => (
-                                                <tr key={doc.id}>
-                                                    <td>{doc.patente}</td>
-                                                    <td>{doc.tipo}</td>
-                                                    <td>{doc.vence ? new Date(doc.vence).toLocaleDateString() : '—'}</td>
-                                                    <td>
-                                                        <span className={documentBadgeClass(doc.estado)}>
-                                                            {doc.estado}
-                                                            {doc.diasParaVencer !== null && doc.estado !== 'Sin fecha' ? ' (' + doc.diasParaVencer + ' días)' : ''}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="p-4 text-center text-muted">No hay documentación registrada.</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-lg-6">
-                    <div className="card shadow-sm h-100">
-                        <div className="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0">Programas preventivos</h5>
-                            <Link to="/mantencion" className="btn btn-outline-secondary btn-sm">Gestionar</Link>
-                        </div>
-                        <div className="card-body p-0">
-                            {reportLoading ? (
-                                <div className="p-4 text-center text-muted">Cargando programas...</div>
-                            ) : mantenciones.length ? (
-                                <div className="table-responsive">
-                                    <table className="table table-sm table-hover mb-0">
-                                        <thead className="table-light">
-                                            <tr>
-                                                <th>Patente</th>
-                                                <th>Tarea</th>
-                                                <th>Próximo control</th>
-                                                <th>Estado</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {mantenciones.slice(0, 6).map((programa) => (
-                                                <tr key={programa.id}>
-                                                    <td>{programa.patente}</td>
-                                                    <td>{programa.tarea}</td>
-                                                    <td>{programa.proximoControl}</td>
-                                                    <td>
-                                                        <span className={maintenanceBadgeClass(programa.estado)}>{programa.estado}</span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="p-4 text-center text-muted">No hay programas preventivos.</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="row g-4 mb-4">
-                <div className="col-lg-6">
-                    <div className="card shadow-sm h-100">
-                        <div className="card-body">
-                            <h6 className="text-muted">Presupuesto de repuestos</h6>
-                            {reportLoading ? (
-                                <div className="text-muted">Cargando...</div>
-                            ) : (
-                                <>
-                                    <div className="d-flex justify-content-between">
-                                        <span>Gastado</span>
-                                        <strong>{formatCurrency(presupuestoGastado)}</strong>
-                                    </div>
-                                    <div className="d-flex justify-content-between">
-                                        <span>Disponible</span>
-                                        <strong>{formatCurrency(presupuestoRestante)}</strong>
-                                    </div>
-                                    <div className="progress mt-2" role="progressbar" aria-label="Avance presupuesto">
-                                        <div
-                                            className="progress-bar bg-success"
-                                            style={{ width: presupuestoPorcentaje + '%' }}
-                                        ></div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-lg-6">
-                    <div className="card shadow-sm h-100">
-                        <div className="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0">Gastos recientes</h5>
-                            <Link to="/gastos" className="btn btn-outline-secondary btn-sm">Ver gastos</Link>
-                        </div>
-                        <div className="card-body p-0">
-                            {reportLoading ? (
-                                <div className="p-4 text-center text-muted">Cargando gastos...</div>
-                            ) : report?.gastos?.mensual?.length ? (
-                                <ul className="list-group list-group-flush">
-                                    {report.gastos.mensual.slice(-4).map((mes) => (
-                                        <li key={mes.periodo} className="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>{mes.periodo}</span>
-                                            <strong>{formatCurrency(mes.total)}</strong>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <div className="p-4 text-center text-muted">No hay gastos registrados.</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="card shadow-sm">
-                <div className="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">Órdenes de trabajo ({orders.length})</h5>
-                    <Link to="/nueva" className="btn btn-outline-primary btn-sm">Gestionar órdenes</Link>
-                </div>
-                <div className="card-body p-0">
-                    {ordersError && (
-                        <div className="alert alert-warning m-3" role="alert">
-                            {ordersError}
-                        </div>
-                    )}
-                    {ordersLoading ? (
-                        <div className="p-4 text-center text-muted">Cargando órdenes de trabajo...</div>
-                    ) : orders.length === 0 ? (
-                        <div className="p-4 text-center text-muted">Aún no existen órdenes registradas.</div>
-                    ) : (
-                        <div className="table-responsive">
-                            <table className="table table-hover align-middle mb-0">
-                                <thead className="table-light">
-                                    <tr>
-                                        <th>Título</th>
-                                        <th>Patente</th>
-                                        <th>Prioridad</th>
-                                        <th>Estado</th>
-                                        <th>Fecha</th>
-                                        <th>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {orders.slice(0, 6).map((order) => (
-                                        <tr key={order.id}>
-                                            <td>
-                                                <div className="fw-semibold">{order.titulo}</div>
-                                                <div className="text-muted small">{order.mecanico}</div>
-                                            </td>
-                                            <td>{order.patente}</td>
-                                            <td>
-                                                <span className={priorityBadge(order.prioridad)}>{order.prioridad}</span>
-                                            </td>
-                                            <td>{order.estado}</td>
-                                            <td>{order.fechaSolicitud ? new Date(order.fechaSolicitud).toLocaleDateString() : '—'}</td>
-                                            <td>{formatCurrency(order.totalCosto)}</td>
+                        {reportLoading ? (
+                            <div className="text-center text-muted py-4">Cargando documentación...</div>
+                        ) : report?.documentacion?.length ? (
+                            <div className="table-responsive">
+                                <table className="table table-sm table-hover mb-0">
+                                    <thead className="table-light">
+                                        <tr>
+                                            <th>Patente</th>
+                                            <th>Documento</th>
+                                            <th>Responsable</th>
+                                            <th>Vence</th>
+                                            <th>Días</th>
+                                            <th>Estado</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                    </thead>
+                                    <tbody>
+                                        {report.documentacion.slice(0, 6).map((doc) => (
+                                            <tr key={doc.id}>
+                                                <td>{doc.patente}</td>
+                                                <td>{doc.tipo}</td>
+                                                <td>{doc.responsable || 'Sin dato'}</td>
+                                                <td>{doc.vence ? new Date(doc.vence).toLocaleDateString() : 'Sin fecha'}</td>
+                                                <td>{doc.diasParaVencer ?? 'Sin dato'}</td>
+                                                <td>
+                                                    <span className={documentBadgeClass(doc.estado)}>{doc.estado}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center text-muted py-4">Sin documentación registrada.</div>
+                        )}
+                    </div>
                 </div>
+                <div className="col-xl-6">
+                    <div className="section-card h-100">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <h5 className="mb-0">Alertas de mantenimiento</h5>
+                            <Link to="/mantencion" className="btn btn-outline-primary btn-sm">
+                                Ver programas
+                            </Link>
+                        </div>
+                        {reportLoading ? (
+                            <div className="text-center text-muted py-4">Cargando alertas...</div>
+                        ) : mantenciones.length === 0 ? (
+                            <div className="text-center text-muted py-4">No hay alertas registradas.</div>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="table table-sm table-hover mb-0">
+                                    <thead className="table-light">
+                                        <tr>
+                                            <th>Tarea</th>
+                                            <th>Patente</th>
+                                            <th>Tipo</th>
+                                            <th>Próximo control</th>
+                                            <th>Días</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {mantenciones.slice(0, 6).map((item) => (
+                                            <tr key={item.id}>
+                                                <td>{item.tarea}</td>
+                                                <td>{item.patente}</td>
+                                                <td>{item.tipoControl === 'km' ? 'Kilómetros' : 'Fecha'}</td>
+                                                <td>{item.proximoControl || '—'}</td>
+                                                <td>{item.dias ?? '—'}</td>
+                                                <td>
+                                                    <span className={maintenanceBadgeClass(item.estado)}>{item.estado}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="section-card">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="mb-0">Órdenes de trabajo ({orders.length})</h5>
+                    <Link to="/nueva" className="btn btn-outline-primary btn-sm">
+                        Gestionar órdenes
+                    </Link>
+                </div>
+                {ordersLoading ? (
+                    <div className="text-center text-muted py-4">Cargando órdenes de trabajo...</div>
+                ) : orders.length === 0 ? (
+                    <div className="text-center text-muted py-4">Aún no existen órdenes registradas.</div>
+                ) : (
+                    <div className="table-responsive">
+                        <table className="table table-hover align-middle mb-0">
+                            <thead className="table-light">
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Patente</th>
+                                    <th>Prioridad</th>
+                                    <th>Estado</th>
+                                    <th>Fecha</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {orders.slice(0, 6).map((order) => (
+                                    <tr key={order.id}>
+                                        <td>
+                                            <div className="fw-semibold">{order.titulo}</div>
+                                            <div className="text-muted small">{order.mecanico}</div>
+                                        </td>
+                                        <td>{order.patente}</td>
+                                        <td>
+                                            <span className={priorityBadge(order.prioridad)}>{order.prioridad}</span>
+                                        </td>
+                                        <td>{order.estado}</td>
+                                        <td>{order.fechaSolicitud ? new Date(order.fechaSolicitud).toLocaleDateString() : 'Sin fecha'}</td>
+                                        <td>{formatCurrency(order.totalCosto)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );

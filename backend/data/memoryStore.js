@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+﻿const crypto = require('crypto');
 
 const users = [
     {
@@ -20,7 +20,7 @@ let trucks = [
         fechaEntrada: '2021-02-15',
         fechaSalida: '',
         estado: 'Operativo',
-        notas: 'Camión principal para rutas largas',
+        notas: 'CamiÃ³n principal para rutas largas',
         conductor: 'Carlos Rivas'
     },
     {
@@ -33,8 +33,8 @@ let trucks = [
         fechaEntrada: '2019-09-08',
         fechaSalida: '',
         estado: 'Operativo',
-        notas: 'Pendiente revisión técnica trimestral',
-        conductor: 'Elena Muñoz'
+        notas: 'Pendiente revisiÃ³n tÃ©cnica trimestral',
+        conductor: 'Elena MuÃ±oz'
     }
 ];
 
@@ -44,27 +44,27 @@ let providers = [
         razonSocial: 'Servicios Diesel Limitada',
         empresa: 'Servicios Diesel',
         rut: '761234567',
-        contacto: 'Juan Pérez',
+        contacto: 'Juan PÃ©rez',
         telefono: '+56 9 5555 5555',
         email: 'contacto@serviciosdiesel.cl',
-        rubro: 'Mantención de motores'
+        rubro: 'MantenciÃ³n de motores'
     },
     {
         id: 2,
-        razonSocial: 'Tecnologías Hidráulicas SPA',
-        empresa: 'TecHidráulica',
+        razonSocial: 'TecnologÃ­as HidrÃ¡ulicas SPA',
+        empresa: 'TecHidrÃ¡ulica',
         rut: '789876543',
-        contacto: 'María González',
+        contacto: 'MarÃ­a GonzÃ¡lez',
         telefono: '+56 2 2345 6789',
         email: 'ventas@techidraulica.cl',
-        rubro: 'Reparación de sistemas hidráulicos'
+        rubro: 'ReparaciÃ³n de sistemas hidrÃ¡ulicos'
     }
 ];
 
 let drivers = [
     { id: 1, nombre: 'Carlos Rivas', licencia: 'A5', telefono: '+56 9 1111 1111' },
-    { id: 2, nombre: 'Elena Muñoz', licencia: 'A4', telefono: '+56 9 2222 2222' },
-    { id: 3, nombre: 'Luis Fernández', licencia: 'A5', telefono: '+56 9 3333 3333' }
+    { id: 2, nombre: 'Elena MuÃ±oz', licencia: 'A4', telefono: '+56 9 2222 2222' },
+    { id: 3, nombre: 'Luis FernÃ¡ndez', licencia: 'A5', telefono: '+56 9 3333 3333' }
 ];
 
 let orders = [
@@ -77,7 +77,7 @@ let orders = [
         conductor: 'Carlos Rivas',
         prioridad: 'Alta',
         estado: 'En progreso',
-        descripcion: 'Revisión completa del sistema de lubricación y cambio de filtros.',
+        descripcion: 'RevisiÃ³n completa del sistema de lubricaciÃ³n y cambio de filtros.',
         fechaSolicitud: '2024-05-12',
         repuestos: [
             { nombre: 'Filtro de aceite', cantidad: 2, costo: 45000 },
@@ -86,14 +86,14 @@ let orders = [
     },
     {
         id: 2,
-        titulo: 'Revisión frenos',
+        titulo: 'RevisiÃ³n frenos',
         patente: 'CC-DD22',
         mecanico: 'Valentina Soto',
         proveedorId: 2,
-        conductor: 'Elena Muñoz',
+        conductor: 'Elena MuÃ±oz',
         prioridad: 'Media',
         estado: 'Pendiente',
-        descripcion: 'Diagnóstico y ajuste de frenos tras reporte de vibración.',
+        descripcion: 'DiagnÃ³stico y ajuste de frenos tras reporte de vibraciÃ³n.',
         fechaSolicitud: '2024-06-03',
         repuestos: [
             { nombre: 'Pastillas freno traseras', cantidad: 4, costo: 29000 }
@@ -121,7 +121,7 @@ let documents = [
         id: 1,
         truckId: 1,
         patente: 'AA-BB11',
-        tipo: 'Permiso de circulación',
+        tipo: 'Permiso de circulaciÃ³n',
         vence: '2024-11-05',
         responsable: 'Carlos Rivas',
         fileName: null,
@@ -133,9 +133,9 @@ let documents = [
         id: 2,
         truckId: 2,
         patente: 'CC-DD22',
-        tipo: 'Revisión técnica',
+        tipo: 'RevisiÃ³n tÃ©cnica',
         vence: '2024-08-18',
-        responsable: 'Elena Muñoz',
+        responsable: 'Elena MuÃ±oz',
         fileName: null,
         originalName: null,
         mimeType: null,
@@ -147,7 +147,7 @@ let documents = [
         patente: 'AA-BB11',
         tipo: 'Seguro obligatorio',
         vence: '2025-02-01',
-        responsable: 'Administración',
+        responsable: 'AdministraciÃ³n',
         fileName: null,
         originalName: null,
         mimeType: null,
@@ -159,12 +159,14 @@ let expenses = [
     {
         id: 1,
         patente: 'AA-BB11',
-        concepto: 'Juego de neumáticos',
+        concepto: 'Juego de neumÃ¡ticos',
         costo: 520000,
         fecha: '2024-04-20',
         boletaPath: null,
         boletaNombre: null,
-        boletaMime: null
+        boletaMime: null,
+        proveedorId: 1,
+        proveedorNombre: 'Servicios Diesel'
     },
     {
         id: 2,
@@ -174,7 +176,9 @@ let expenses = [
         fecha: '2024-05-10',
         boletaPath: null,
         boletaNombre: null,
-        boletaMime: null
+        boletaMime: null,
+        proveedorId: 2,
+        proveedorNombre: 'Tecnolog��as Hidrǭulicas SPA'
     }
 ];
 
@@ -192,12 +196,45 @@ let maintenancePrograms = [
     {
         id: 2,
         patente: 'CC-DD22',
-        tarea: 'Revisión general',
+        tarea: 'RevisiÃ³n general',
         tipoControl: 'fecha',
         fecha: '2024-06-15',
         ultimoKm: '',
         intervalo: 90,
         proximoControl: '12-09-2024'
+    }
+];
+
+let orderBudgets = [
+    {
+        id: 1,
+        orderId: 1,
+        monto: 128000,
+        estado: 'Pendiente',
+        observacion: '',
+        createdAt: '2024-06-15T09:00:00.000Z',
+        updatedAt: '2024-06-15T09:00:00.000Z'
+    },
+    {
+        id: 2,
+        orderId: 2,
+        monto: 29000,
+        estado: 'Aprobado',
+        observacion: 'Continuar con la revision segun cronograma.',
+        createdAt: '2024-06-20T10:30:00.000Z',
+        updatedAt: '2024-06-22T14:45:00.000Z'
+    }
+];
+
+let notifications = [
+    {
+        id: 1,
+        message: 'El presupuesto de la OT "Revision frenos" fue aprobado.',
+        type: 'success',
+        orderId: 2,
+        budgetId: 2,
+        read: false,
+        createdAt: '2024-06-22T15:00:00.000Z'
     }
 ];
 
@@ -211,6 +248,8 @@ let nextOrderId = orders.length + 1;
 let nextDocumentId = documents.length + 1;
 let nextExpenseId = expenses.length + 1;
 let nextMaintenanceId = maintenancePrograms.length + 1;
+let nextBudgetId = orderBudgets.length + 1;
+let nextNotificationId = notifications.length + 1;
 
 function sanitizeUser(user) {
     if (!user) return null;
@@ -330,6 +369,12 @@ function listProviders() {
     return providers;
 }
 
+function getProviderById(id) {
+    const target = Number(id);
+    if (!Number.isFinite(target)) return null;
+    return providers.find((provider) => provider.id === target) || null;
+}
+
 function createProvider(data) {
     const newProvider = {
         id: nextProviderId++,
@@ -405,7 +450,7 @@ function createOrder(data) {
         proveedorId: Number(data.proveedorId) || null,
         conductor: data.conductor || '',
         prioridad: data.prioridad || 'Media',
-        estado: data.estado || 'Pendiente',
+        estado: 'Pendiente',
         descripcion: data.descripcion || '',
         fechaSolicitud: data.fechaSolicitud || new Date().toISOString().slice(0, 10),
         repuestos
@@ -444,7 +489,151 @@ function deleteOrder(id) {
     if (index === -1) return false;
 
     orders.splice(index, 1);
+    orderBudgets = orderBudgets.filter((budget) => budget.orderId !== id);
     return true;
+}
+
+function withBudgetDetails(budget) {
+    const order = getOrderById(budget.orderId);
+    return {
+        ...budget,
+        order: order
+            ? {
+                id: order.id,
+                titulo: order.titulo,
+                patente: order.patente,
+                proveedorId: order.proveedorId,
+                totalCosto: order.totalCosto,
+                prioridad: order.prioridad,
+                estado: order.estado,
+                fechaSolicitud: order.fechaSolicitud
+            }
+            : null
+    };
+}
+
+function listBudgets() {
+    return orderBudgets.map(withBudgetDetails);
+}
+
+function getBudgetById(id) {
+    const budget = orderBudgets.find((item) => item.id === id);
+    return budget ? withBudgetDetails(budget) : null;
+}
+
+function createBudgetForOrder(orderId) {
+    const order = getOrderById(orderId);
+    if (!order) return null;
+
+    const existingPending = orderBudgets.find(
+        (item) => item.orderId === orderId && item.estado === 'Pendiente'
+    );
+    if (existingPending) {
+        return withBudgetDetails(existingPending);
+    }
+
+    const now = new Date().toISOString();
+    const budget = {
+        id: nextBudgetId++,
+        orderId,
+        monto: order.totalCosto || 0,
+        estado: 'Pendiente',
+        observacion: '',
+        createdAt: now,
+        updatedAt: now
+    };
+
+    orderBudgets.push(budget);
+    createNotification({
+        message: `Nuevo presupuesto pendiente para la OT "${order.titulo}".`,
+        type: 'info',
+        orderId: orderId,
+        budgetId: budget.id
+    });
+
+    return withBudgetDetails(budget);
+}
+
+function updateBudgetRequest(id, data) {
+    const index = orderBudgets.findIndex((item) => item.id === id);
+    if (index === -1) return null;
+
+    const previous = orderBudgets[index];
+    const nextState = data.estado ?? previous.estado;
+    const nextObservation =
+        typeof data.observacion === 'string' ? data.observacion : previous.observacion;
+    const nextMonto =
+        data.monto !== undefined && Number.isFinite(Number(data.monto))
+            ? Number(data.monto)
+            : previous.monto;
+
+    const now = new Date().toISOString();
+
+    const updated = {
+        ...previous,
+        estado: nextState,
+        observacion: nextObservation,
+        monto: nextMonto,
+        updatedAt: now
+    };
+
+    orderBudgets[index] = updated;
+
+    if (data.estado && data.estado !== previous.estado) {
+        const order = getOrderById(updated.orderId);
+        const notificationType =
+            data.estado === 'Aprobado'
+                ? 'success'
+                : data.estado === 'Rechazado'
+                    ? 'danger'
+                    : 'warning';
+        createNotification({
+            message: `El presupuesto de la OT "${order?.titulo || updated.orderId}" fue ${data.estado.toLowerCase()}.`,
+            type: notificationType,
+            orderId: updated.orderId,
+            budgetId: updated.id
+        });
+    }
+
+    return withBudgetDetails(updated);
+}
+
+function createNotification({ message, type = 'info', orderId = null, budgetId = null }) {
+    const notification = {
+        id: nextNotificationId++,
+        message,
+        type,
+        orderId,
+        budgetId,
+        read: false,
+        createdAt: new Date().toISOString()
+    };
+
+    notifications.push(notification);
+    return notification;
+}
+
+function listNotifications() {
+    return [...notifications].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+}
+
+function markNotificationAsRead(id) {
+    const notification = notifications.find((item) => item.id === id);
+    if (!notification) return null;
+    notification.read = true;
+    notification.readAt = new Date().toISOString();
+    return notification;
+}
+
+function markAllNotificationsAsRead() {
+    const now = new Date().toISOString();
+    notifications.forEach((item) => {
+        item.read = true;
+        item.readAt = now;
+    });
+    return listNotifications();
 }
 
 function listSales() {
@@ -495,7 +684,9 @@ function createExpense(data) {
         fecha: data.fecha || new Date().toISOString().slice(0, 10),
         boletaPath: data.boletaPath || null,
         boletaNombre: data.boletaNombre || null,
-        boletaMime: data.boletaMime || null
+        boletaMime: data.boletaMime || null,
+        proveedorId: data.proveedorId ?? null,
+        proveedorNombre: data.proveedorNombre ?? null
     };
 
     expenses.push(newExpense);
@@ -655,6 +846,7 @@ module.exports = {
     updateTruck,
     deleteTruck,
     listProviders,
+    getProviderById,
     createProvider,
     updateProvider,
     deleteProvider,
@@ -664,6 +856,10 @@ module.exports = {
     createOrder,
     updateOrder,
     deleteOrder,
+    listBudgets,
+    getBudgetById,
+    createBudgetForOrder,
+    updateBudgetRequest,
     listSales,
     listDocuments,
     createDocument,
@@ -676,6 +872,11 @@ module.exports = {
     deleteMaintenanceProgram,
     getMaintenanceAlerts,
     getBudgetInfo,
+    listNotifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
     updateBudget,
     getCostsByTruck
 };
+
+
